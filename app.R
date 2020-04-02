@@ -85,7 +85,10 @@ log_minor_breaks_y <- as.numeric(0:10 %o% log_breaks_y)
 
 ui <- fluidPage(
     
-    titlePanel(sprintf("Trajektorien von bestätigten COVID-19-Fällen in den deutschen Bundesländern (Meldedatum bis %s)", max(covid19_bl$Meldedatum))),
+    titlePanel(
+        sprintf("Trajektorien von bestätigten COVID-19-Fällen in den deutschen Bundesländern (Stand: %s)", 
+                strftime(max(covid19_bl$Meldedatum), "%d.%m.%Y"))
+    ),
     
     sidebarLayout(position = "right",
                   
@@ -109,6 +112,7 @@ ui <- fluidPage(
                                                    min = min(covid19_bl$Meldedatum),
                                                    max = max(covid19_bl$Meldedatum),
                                                    value = max(covid19_bl$Meldedatum),
+                                                   timeFormat = "%d.%m.%Y",
                                                    animate = TRUE,
                                                    width = "100%"),
                                        includeMarkdown("doc/credits.md")
@@ -147,6 +151,7 @@ server <- function(input, output) {
             geom_point(size = 1.1, color = "red",
                        data = bundesland_labels()) +
             geom_text(aes(label = label), 
+                      size = 5,
                       hjust = 1.1, vjust = 0,
                       data = bundesland_labels()) +
             # scale_x_continuous("Bestätigte Fälle (Gesamt)") +
@@ -155,11 +160,11 @@ server <- function(input, output) {
             scale_x_continuous("Bestätigte Fälle (Gesamt)", trans = "log1p",
                                breaks = log_breaks_x, minor_breaks = log_minor_breaks_x,
                                labels = scales::number_format(accuracy = 1, big.mark = " ")) +
-            scale_y_continuous("Neue bestätigte Fälle (in der vergangenen Woche)", trans = "log1p",
+            scale_y_continuous("Neue bestätigte Fälle\n(in der vergangenen Woche)", trans = "log1p",
                                breaks = log_breaks_y, minor_breaks = log_minor_breaks_y,
                                labels = scales::number_format(accuracy = 1, big.mark = " ")) +
             coord_cartesian(xlim = log_limits_x, ylim = log_limits_y) +
-            theme_bw(base_size = 20) +
+            theme_bw(base_size = 22) +
             theme(axis.title.x = element_text(margin = margin(1, 0, 0, 0, "lines")),
                   axis.title.y = element_text(margin = margin(0, 1, 0, 0, "lines")))
     })
