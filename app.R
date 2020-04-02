@@ -85,7 +85,7 @@ log_minor_breaks_y <- as.numeric(0:10 %o% log_breaks_y)
 
 ui <- fluidPage(
     
-    titlePanel(sprintf("Trajektorien von bestätigten COVID-19-Fällen in Deutschland je Bundesland (Meldedatum bis %s)", max(covid19_bl$Meldedatum))),
+    titlePanel(sprintf("Trajektorien von bestätigten COVID-19-Fällen in den deutschen Bundesländern (Meldedatum bis %s)", max(covid19_bl$Meldedatum))),
     
     sidebarLayout(position = "right",
                   
