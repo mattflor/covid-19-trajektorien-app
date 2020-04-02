@@ -1,3 +1,10 @@
+---
+title: "Trajektorien von bestätigten COVID-19-Fällen in den deutschen Bundesländern"
+output: github_document
+---
+
+## Beschreibung
+
 Diese [Shiny App](https://shiny.rstudio.com/) ist ein interaktiver Graph und stellt die Trajektorien bestätigter COVID-19-Fälle in den deutschen Bundesländern dar. 
 Die Anzahl der neuen bestätigten Fälle in der vergangenen Woche wird gegen die Gesamtzahl bestätigter Fälle aufgetragen. 
 Beide Achsen sind dabei logarithmisch skaliert, um auch die Entwicklung am Beginn der Ausbreitung auflösen zu können.
@@ -13,3 +20,11 @@ Allerdings sollte hierbei der Meldeverzug im Hinterkopf behalten werden, der sic
 - Bundesländer lassen sich im Auswahlfeld nach Anklicken mit `<Del>` entfernen und nach Klicken in den weißen Bereich des Feldes auch wieder hinzufügen.
 - Mit dem Play Button am rechten Ende des Schiebereglers für das Meldedatum kann die gesamte Entwicklung animiert werden.
 - Wenn der Schieberegler ausgewählt ist, kann mit den Pfeiltasten um einzelne Tage vor- und zurückgesprungen werden.
+
+## Credits
+
+Daten: [Bundesamt für Kartographie und Geodäsie / Robert-Koch-Institut](https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0/data)
+·
+Idee für diese Form der Darstellung: [Aatish Bhatia](https://aatishb.com/covidtrends) und [Minute Physics](https://youtu.be/54XLXg4fYsc)
+·
+Source: [github.com/mattflor](https://github.com/mattflor/covid-19-trajektorien-app)
