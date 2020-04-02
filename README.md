@@ -23,12 +23,15 @@ Trajektorie nach unten zeigen. Allerdings sollte hierbei der Meldeverzug
 im Hinterkopf behalten werden, der sich besonders in den letzten ein bis
 zwei Tagen der Trajektorien niederschlägt.
 
-**Tipps:** - Bundesländer lassen sich im Auswahlfeld nach Anklicken mit
-`<Del>` entfernen und nach Klicken in den weißen Bereich des Feldes auch
-wieder hinzufügen. - Mit dem Play Button am rechten Ende des
-Schiebereglers für das Meldedatum kann die gesamte Entwicklung animiert
-werden. - Wenn der Schieberegler ausgewählt ist, kann mit den
-Pfeiltasten um einzelne Tage vor- und zurückgesprungen werden.
+**Tipps:**
+
+  - Bundesländer lassen sich im Auswahlfeld nach Anklicken mit `<Del>`
+    entfernen und nach Klicken in den weißen Bereich des Feldes auch
+    wieder hinzufügen.
+  - Mit dem Play Button am rechten Ende des Schiebereglers für das
+    Meldedatum kann die gesamte Entwicklung animiert werden.
+  - Wenn der Schieberegler ausgewählt ist, kann mit den Pfeiltasten um
+    einzelne Tage vor- und zurückgesprungen werden.
 
 ## Credits
 
