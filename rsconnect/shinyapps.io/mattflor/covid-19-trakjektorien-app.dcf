@@ -1,0 +1,10 @@
+name: covid-19-trakjektorien-app
+title:
+username:
+account: mattflor
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2044804
+bundleId: 2968119
+url: https://mattflor.shinyapps.io/covid-19-trakjektorien-app/
+when: 1586001702.95351
