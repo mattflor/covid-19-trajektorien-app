@@ -2,33 +2,20 @@ library(shiny)
 library(tidyverse)
 library(lubridate)
 library(zoo)
+library(jsonlite)
 
-# data retrieved from https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0/data:
-# Herunterladen > Tabelle
-covid19_de <- read_csv("data/RKI_COVID19.csv",
-                       col_types = cols(
-                           IdBundesland = col_integer(),
-                           Bundesland = col_character(),
-                           Landkreis = col_character(),
-                           Altersgruppe = col_character(),
-                           Geschlecht = col_character(),
-                           AnzahlFall = col_integer(),
-                           AnzahlTodesfall = col_integer(),
-                           ObjectId = col_double(),
-                           Meldedatum = col_datetime(),
-                           IdLandkreis = col_character(),
-                           Datenstand = col_datetime(format = "%d.%m.%Y %H:%M"),
-                           NeuerFall = col_integer(),
-                           NeuerTodesfall = col_integer()
-                       )) %>% 
-    mutate(Meldedatum = as_date(Meldedatum),
-           Datenstand = as_date(Datenstand)) %>% 
+dat <- fromJSON("https://opendata.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0.geojson")
+
+covid19_de <- dat$features$properties %>% 
+    as_tibble() %>% 
+    mutate(Meldedatum = as_date(Meldedatum)) %>% 
+    select(IdBundesland, Bundesland, AnzahlFall, AnzahlTodesfall, Meldedatum) %>% 
     print()
 
 covid19_bl <- covid19_de %>%
-    group_by(IdBundesland, Bundesland, Meldedatum) %>% 
+    group_by(IdBundesland, Bundesland, Meldedatum) %>%
     summarise(AnzahlFall = sum(AnzahlFall, na.rm = TRUE),
-              AnzahlTodesfall = sum(AnzahlTodesfall)) %>% 
+              AnzahlTodesfall = sum(AnzahlTodesfall)) %>%
     ungroup() %>%
     complete(nesting(IdBundesland, Bundesland), 
              Meldedatum = seq(min(Meldedatum), max(Meldedatum), by = 1), 
@@ -41,7 +28,6 @@ covid19_bl <- covid19_de %>%
     mutate(FaelleLetzteWoche = rollsum(AnzahlFall, k = 7, fill = NA, align = "right")) %>% 
     mutate(FaelleLetzteWoche = ifelse(is.na(FaelleLetzteWoche), cumsum(AnzahlFall), FaelleLetzteWoche)) %>%  # need to fill rollsum at start of the windows
     ungroup() %>% 
-    # arrange(IdBundesland, Meldedatum) %>% 
     filter(GesamtFall > 0) %>%
     print(n = 50)
 
