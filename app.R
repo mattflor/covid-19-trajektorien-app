@@ -3,6 +3,18 @@ library(tidyverse)
 library(lubridate)
 library(zoo)
 library(jsonlite)
+library(viridis)
+
+einwohner_bl <- read_delim("data/Einwohnerzahlen_12411-0010.csv", 
+                              delim = ";", escape_double = FALSE, locale = locale(encoding = "WINDOWS-1252"), 
+                              skip = 5, n_max = 16,
+                              trim_ws = TRUE) %>% 
+    rename(Bundesland = X1) %>% 
+    pivot_longer(cols = -Bundesland, names_to = "Stichtag", values_to = "Einwohner") %>% 
+    mutate(Stichtag = dmy(Stichtag)) %>%
+    filter(Stichtag == max(Stichtag)) %>% 
+    select(-Stichtag) %>% 
+    print()
 
 dat <- fromJSON("https://opendata.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0.geojson")
 
@@ -29,6 +41,8 @@ covid19_bl <- covid19_de %>%
     mutate(FaelleLetzteWoche = ifelse(is.na(FaelleLetzteWoche), cumsum(AnzahlFall), FaelleLetzteWoche)) %>%  # need to fill rollsum at start of the windows
     ungroup() %>% 
     filter(GesamtFall > 0) %>%
+    left_join(einwohner_bl, by = "Bundesland") %>% 
+    mutate(GesamtFallPro1e5 = 1e5 * GesamtFall / Einwohner) %>% 
     print(n = 50)
 
 bundeslaender <- unique(covid19_bl$Bundesland)
@@ -69,6 +83,9 @@ log_limits_y <- c(0, 1e5)
 log_breaks_y <- log1p_breaks(n = 7)(log_limits_y)
 log_minor_breaks_y <- as.numeric(0:10 %o% log_breaks_y)
 
+# size_breaks <- pretty(n = 10, covid19_bl$GesamtFallPro1e5)
+size_breaks <- 10^scales::pretty_breaks(n = 5)(log10(covid19_bl$GesamtFallPro1e5))
+
 ui <- fluidPage(
     
     titlePanel(
@@ -89,7 +106,7 @@ ui <- fluidPage(
                   
                   mainPanel(width = 9,
                             plotOutput("trajectory_plot",
-                                       height = "600px"),
+                                       height = "700px"),
                             
                             fluidRow(
                                 column(11, offset = 1,
@@ -125,7 +142,7 @@ server <- function(input, output) {
         k <- ifelse(input$datum == max(filtered()$Meldedatum), 1, 0)
         filtered_to_date() %>% 
             filter(Meldedatum == (input$datum - k)) %>%    
-            mutate(label = paste0(Bundesland, " "))
+            mutate(label = paste0(Bundesland, "  "))
     })
     
     output$trajectory_plot <- renderPlot({
@@ -133,26 +150,38 @@ server <- function(input, output) {
             ggplot(aes(x = GesamtFall, y = FaelleLetzteWoche, group = Bundesland)) +
             geom_abline(slope = 1, linetype = "dashed", color = "darkgray") +
             geom_line(size = 0.4, color = "darkgray", alpha = 1) +
-            # geom_point(size = 1, color = "darkgray") +
-            geom_point(size = 1.1, color = "red",
+            # geom_point(size = 1.1, color = "red",
+            #            data = bundesland_labels()) +
+            geom_point(aes(size = GesamtFallPro1e5,
+                           color = GesamtFallPro1e5),
+                       alpha = 0.7,
                        data = bundesland_labels()) +
             geom_text(aes(label = label), 
                       size = 5,
                       hjust = 1.1, vjust = 0,
                       data = bundesland_labels()) +
-            # scale_x_continuous("Bestätigte Fälle (Gesamt)") +
-            # scale_y_continuous("Neue bestätigte Fälle (in der vergangenen Woche)") +
-            # coord_cartesian(xlim = linear_limits, ylim = linear_limits) +
-            scale_x_continuous("Bestätigte Fälle (Gesamt)", trans = "log1p",
+            scale_x_continuous("Gesamtfälle", trans = "log1p",
                                breaks = log_breaks_x, minor_breaks = log_minor_breaks_x,
                                labels = scales::number_format(accuracy = 1, big.mark = " ")) +
-            scale_y_continuous("Neue bestätigte Fälle\n(in der vergangenen Woche)", trans = "log1p",
+            scale_y_continuous("Neue Fälle\nin der vergangenen Woche", trans = "log1p",
                                breaks = log_breaks_y, minor_breaks = log_minor_breaks_y,
                                labels = scales::number_format(accuracy = 1, big.mark = " ")) +
+            scale_size_continuous("Gesamtfälle pro 100 000 Einwohner:", trans = "log",
+                                  breaks = size_breaks, limits = range(size_breaks),
+                                  range = c(1, 10),
+                                  labels = prettyNum(signif(size_breaks, 1)),
+                                  guide = guide_legend(nrow = 1)) +
+            scale_color_viridis("Gesamtfälle pro 100 000 Einwohner:", trans = "log", 
+                                option = "plasma", begin = 0.2,
+                                breaks = size_breaks, limits = range(size_breaks),
+                                labels = prettyNum(signif(size_breaks, 1)),
+                                guide = guide_legend(nrow = 1)) +
             coord_cartesian(xlim = log_limits_x, ylim = log_limits_y) +
             theme_bw(base_size = 22) +
             theme(axis.title.x = element_text(margin = margin(1, 0, 0, 0, "lines")),
-                  axis.title.y = element_text(margin = margin(0, 1, 0, 0, "lines")))
+                  axis.title.y = element_text(margin = margin(0, 1, 0, 0, "lines")),
+                  legend.position = "top", legend.justification = "right", 
+                  legend.text = element_text(margin = margin(0, 1, 0, -0.25, "lines")))
     })
 }
 
