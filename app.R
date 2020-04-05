@@ -4,6 +4,9 @@ library(lubridate)
 library(zoo)
 library(viridis)
 
+# suppress scientific notation:
+options(scipen = 999)
+
 einwohner_bl <- read_delim("data/Einwohnerzahlen_12411-0010.csv", 
                            delim = ";", escape_double = FALSE, locale = locale(encoding = "WINDOWS-1252"),
                            skip = 5, n_max = 16,
@@ -93,15 +96,14 @@ log_limits_y <- c(0, 1e5)
 log_breaks_y <- log1p_breaks(n = 7)(log_limits_y)
 log_minor_breaks_y <- as.numeric(0:10 %o% log_breaks_y)
 
-# size_breaks <- pretty(n = 10, covid19_bl$GesamtFallPro1e5)
-size_breaks <- 10^scales::pretty_breaks(n = 5)(log10(covid19_bl$GesamtFallPro1e5))
-size_breaks <- size_breaks[2:length(size_breaks)]
+size_breaks <- 10^seq(-3, 5, by = 1)
 
 ui <- fluidPage(
     
     # avoid graying out of plots during recalculation:
-    tags$style(type="text/css",
-               ".recalculating {opacity: 1.0;}"
+    tags$style(type = "text/css",
+               ".recalculating {opacity: 1.0;}
+                h2 {font-weight: bold;}"
     ),
     
     titlePanel(
@@ -185,20 +187,21 @@ server <- function(input, output) {
             scale_size_continuous("Gesamtfälle pro 100 000 Einwohner:", trans = "log",
                                   breaks = size_breaks, limits = range(size_breaks),
                                   range = c(1, 10),
-                                  labels = prettyNum(signif(size_breaks, 1), decimal.mark = ","),
+                                  labels = prettyNum(signif(size_breaks, 1), 
+                                                     decimal.mark = ",", big.mark = " "),
                                   guide = guide_legend(nrow = 1)) +
             scale_color_viridis("Gesamtfälle pro 100 000 Einwohner:", trans = "log", 
                                 option = "plasma", begin = 0.2,
                                 breaks = size_breaks, limits = range(size_breaks),
-                                labels = prettyNum(signif(size_breaks, 1), decimal.mark = ","),
+                                labels = prettyNum(signif(size_breaks, 1), 
+                                                   decimal.mark = ",", big.mark = " "),
                                 guide = guide_legend(nrow = 1)) +
             coord_cartesian(xlim = log_limits_x, ylim = log_limits_y) +
             theme_bw(base_size = 22) +
             theme(axis.title.x = element_text(margin = margin(1, 0, 0, 0, "lines")),
                   axis.title.y = element_text(margin = margin(0, 1, 0, 0, "lines")),
                   legend.position = "top", legend.justification = "right", 
-                  legend.text = element_text(margin = margin(0, 1, 0, -0.25, "lines")),
-                  plot.title = element_text(face = "bold"))
+                  legend.text = element_text(margin = margin(0, 1, 0, -0.25, "lines")))
     })
 }
 
