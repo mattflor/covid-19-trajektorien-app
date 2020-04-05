@@ -2,29 +2,39 @@ library(shiny)
 library(tidyverse)
 library(lubridate)
 library(zoo)
-library(jsonlite)
 library(viridis)
 
 einwohner_bl <- read_delim("data/Einwohnerzahlen_12411-0010.csv", 
-                              delim = ";", escape_double = FALSE, locale = locale(encoding = "WINDOWS-1252"), 
-                              skip = 5, n_max = 16,
-                              trim_ws = TRUE) %>% 
+                           delim = ";", escape_double = FALSE, locale = locale(encoding = "WINDOWS-1252"),
+                           skip = 5, n_max = 16,
+                           trim_ws = TRUE) %>%
     rename(Bundesland = X1) %>% 
     pivot_longer(cols = -Bundesland, names_to = "Stichtag", values_to = "Einwohner") %>% 
     mutate(Stichtag = dmy(Stichtag)) %>%
     filter(Stichtag == max(Stichtag)) %>% 
-    select(-Stichtag) %>% 
-    print()
+    select(-Stichtag)
+# einwohner_bl %>% print()
 
-dat <- fromJSON("https://opendata.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0.geojson")
+#' get current data if necessary:
+current_date <- Sys.Date()
+download_date <- file.mtime("data/RKI_COVID19.csv") %>% as_date()
+if (current_date > download_date) {
+    download.file(url = "https://opendata.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0.csv",
+                  destfile = "data/RKI_COVID19.csv",
+                  method = "libcurl")
+}
 
-covid19_de <- dat$features$properties %>% 
-    as_tibble() %>% 
+#' read in data
+covid19_de <- read_csv("data/RKI_COVID19.csv") %>% 
     mutate(Meldedatum = as_date(Meldedatum)) %>% 
-    select(IdBundesland, Bundesland, AnzahlFall, AnzahlTodesfall, Meldedatum) %>% 
-    print()
+    select(IdBundesland, Bundesland, AnzahlFall, AnzahlTodesfall, Meldedatum)
+if (length(unique(covid19_de$Bundesland)) != 16) {   # sometimes, current data is incomplete, so we fall back to an old file
+    covid19_de <- read_csv("data/RKI_COVID19_20200403.csv") %>% 
+        mutate(Meldedatum = as_date(Meldedatum)) %>% 
+        select(IdBundesland, Bundesland, AnzahlFall, AnzahlTodesfall, Meldedatum)
+}
 
-covid19_bl <- covid19_de %>%
+covid19_bl <- covid19_de %>% 
     group_by(IdBundesland, Bundesland, Meldedatum) %>%
     summarise(AnzahlFall = sum(AnzahlFall, na.rm = TRUE),
               AnzahlTodesfall = sum(AnzahlTodesfall)) %>%
@@ -42,8 +52,8 @@ covid19_bl <- covid19_de %>%
     ungroup() %>% 
     filter(GesamtFall > 0) %>%
     left_join(einwohner_bl, by = "Bundesland") %>% 
-    mutate(GesamtFallPro1e5 = 1e5 * GesamtFall / Einwohner) %>% 
-    print(n = 50)
+    mutate(GesamtFallPro1e5 = 1e5 * GesamtFall / Einwohner)
+# covid19_bl %>% print(n = 50)
 
 bundeslaender <- unique(covid19_bl$Bundesland)
 
@@ -85,8 +95,14 @@ log_minor_breaks_y <- as.numeric(0:10 %o% log_breaks_y)
 
 # size_breaks <- pretty(n = 10, covid19_bl$GesamtFallPro1e5)
 size_breaks <- 10^scales::pretty_breaks(n = 5)(log10(covid19_bl$GesamtFallPro1e5))
+size_breaks <- size_breaks[2:length(size_breaks)]
 
 ui <- fluidPage(
+    
+    # avoid graying out of plots during recalculation:
+    tags$style(type="text/css",
+               ".recalculating {opacity: 1.0;}"
+    ),
     
     titlePanel(
         sprintf("Trajektorien von bestätigten COVID-19-Fällen in den deutschen Bundesländern (Stand: %s)", 
@@ -169,19 +185,20 @@ server <- function(input, output) {
             scale_size_continuous("Gesamtfälle pro 100 000 Einwohner:", trans = "log",
                                   breaks = size_breaks, limits = range(size_breaks),
                                   range = c(1, 10),
-                                  labels = prettyNum(signif(size_breaks, 1)),
+                                  labels = prettyNum(signif(size_breaks, 1), decimal.mark = ","),
                                   guide = guide_legend(nrow = 1)) +
             scale_color_viridis("Gesamtfälle pro 100 000 Einwohner:", trans = "log", 
                                 option = "plasma", begin = 0.2,
                                 breaks = size_breaks, limits = range(size_breaks),
-                                labels = prettyNum(signif(size_breaks, 1)),
+                                labels = prettyNum(signif(size_breaks, 1), decimal.mark = ","),
                                 guide = guide_legend(nrow = 1)) +
             coord_cartesian(xlim = log_limits_x, ylim = log_limits_y) +
             theme_bw(base_size = 22) +
             theme(axis.title.x = element_text(margin = margin(1, 0, 0, 0, "lines")),
                   axis.title.y = element_text(margin = margin(0, 1, 0, 0, "lines")),
                   legend.position = "top", legend.justification = "right", 
-                  legend.text = element_text(margin = margin(0, 1, 0, -0.25, "lines")))
+                  legend.text = element_text(margin = margin(0, 1, 0, -0.25, "lines")),
+                  plot.title = element_text(face = "bold"))
     })
 }
 
