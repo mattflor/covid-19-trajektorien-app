@@ -31,8 +31,11 @@ if (current_date > download_date) {
 covid19_de <- read_csv("data/RKI_COVID19.csv") %>% 
     mutate(Meldedatum = as_date(Meldedatum)) %>% 
     select(IdBundesland, Bundesland, AnzahlFall, AnzahlTodesfall, Meldedatum)
-if (length(unique(covid19_de$Bundesland)) != 16) {   # sometimes, current data is incomplete, so we fall back to an old file
-    covid19_de <- read_csv("data/RKI_COVID19_20200403.csv") %>% 
+# TO DO: better check for complete data file
+if (length(unique(covid19_de$Bundesland)) == 16) {             # current data may be incomplete, so we save a backup file ...
+    write_csv(covid19_de, "data/RKI_COVID19_bak.csv")
+} else {
+    covid19_de <- read_csv("data/RKI_COVID19_bak.csv") %>%     # ... that we can fall back to
         mutate(Meldedatum = as_date(Meldedatum)) %>% 
         select(IdBundesland, Bundesland, AnzahlFall, AnzahlTodesfall, Meldedatum)
 }
@@ -58,7 +61,7 @@ covid19_bl <- covid19_de %>%
     mutate(GesamtFallPro1e5 = 1e5 * GesamtFall / Einwohner)
 # covid19_bl %>% print(n = 50)
 
-bundeslaender <- unique(covid19_bl$Bundesland)
+bundeslaender <- unique(covid19_bl$Bundesland) %>% sort()
 
 log1p_breaks <- function (n = 5, base = 10) {
     # 
@@ -143,7 +146,7 @@ ui <- fluidPage(
     )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
     
     filtered <- reactive({
         covid19_bl %>% 
@@ -161,6 +164,10 @@ server <- function(input, output) {
         filtered_to_date() %>% 
             filter(Meldedatum == (input$datum - k)) %>%    
             mutate(label = paste0(Bundesland, "  "))
+    })
+    
+    observeEvent(input$bundeslaender, {
+        updateSliderInput(session, "datum", min = min(filtered()$Meldedatum)) 
     })
     
     output$trajectory_plot <- renderPlot({
